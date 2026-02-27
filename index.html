@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OCR Scanner - Targeted</title>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        body { 
+            font-family: sans-serif; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 20px; 
+            background-color: #f4f4f9;
+        }
+        #videoContainer {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 15px;
+            border: 2px solid #333; 
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        video { 
+            width: 100%; 
+            display: block;
+        }
+        /* The targeting reticle */
+        #targetBox {
+            position: absolute;
+            top: 25%;
+            left: 10%;
+            width: 80%;
+            height: 50%;
+            border: 3px solid #00ff00;
+            /* Darkens the area outside the box */
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+        }
+        textarea {
+            width: 100%; 
+            max-width: 400px;
+            padding: 10px;
+            font-size: 16px;
+            resize: vertical;
+            margin-bottom: 15px; 
+            border: 2px solid #333; 
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        button { 
+            width: 100%;
+            max-width: 400px;
+            padding: 15px; 
+            font-size: 16px; 
+            font-weight: bold;
+            cursor: pointer; 
+            margin-bottom: 10px; 
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+        }
+        button:hover { background-color: #0056b3; }
+        canvas { display: none; }
+    </style>
+</head>
+<body>
+
+    <h2>Text Grabber</h2>
+    
+    <div id="videoContainer">
+        <video id="camera" autoplay playsinline></video>
+        <div id="targetBox"></div>
+    </div>
+    
+    <button id="captureBtn">Capture Text in Box</button>
+    
+    <textarea id="resultText" rows="6" placeholder="Extracted text will appear here..."></textarea>
+    <button id="saveBtn">Save to Text File</button>
+    
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const video = document.getElementById('camera');
+        const canvas = document.getElementById('canvas');
+        const captureBtn = document.getElementById('captureBtn');
+        const resultText = document.getElementById('resultText');
+        const saveBtn = document.getElementById('saveBtn');
+        const targetBox = document.getElementById('targetBox');
+
+        // Initialize Camera
+        const constraints = {
+            video: { 
+                facingMode: 'environment',
+                width: { ideal: 1920 },
+                height: { ideal: 1080 },
+                advanced: [{ focusMode: "continuous" }] 
+            }
+        };
+
+        navigator.mediaDevices.getUserMedia(constraints)
+            .then(stream => { video.srcObject = stream; })
+            .catch(err => {
+                resultText.value = "Camera error. Ensure permissions are granted.";
+            });
+
+        // Capture Cropped Area and Run OCR
+        captureBtn.addEventListener('click', async () => {
+            resultText.value = "Reading text... Please hold steady.";
+            
+            // Calculate scale between actual video resolution and CSS display size
+            const scaleX = video.videoWidth / video.clientWidth;
+            const scaleY = video.videoHeight / video.clientHeight;
+
+            // Calculate crop coordinates based on the green target box
+            const cropX = targetBox.offsetLeft * scaleX;
+            const cropY = targetBox.offsetTop * scaleY;
+            const cropWidth = targetBox.offsetWidth * scaleX;
+            const cropHeight = targetBox.offsetHeight * scaleY;
+
+            // Set canvas to the exact size of the crop
+            canvas.width = cropWidth;
+            canvas.height = cropHeight;
+            const ctx = canvas.getContext('2d');
+            
+            // Apply high-contrast filters and draw ONLY the targeted area
+            ctx.filter = 'grayscale(100%) contrast(250%) brightness(120%)';
+            ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+            try {
+                // Pass cropped canvas to Tesseract
+                const result = await Tesseract.recognize(canvas, 'eng');
+                let cleanedText = result.data.text.trim();
+                
+                if(cleanedText.length < 2) {
+                    cleanedText = "No text found in the green box. Try again.";
+                }
+                resultText.value = cleanedText;
+            } catch (error) {
+                resultText.value = "Error extracting text.";
+            }
+        });
+
+        // Save Text to File
+        saveBtn.addEventListener('click', () => {
+            const text = resultText.value;
+            if (!text || text.includes("Reading text...")) return;
+            
+            const blob = new Blob([text], { type: 'text/plain' });
+            const anchor = document.createElement('a');
+            anchor.href = URL.createObjectURL(blob);
+            anchor.download = 'scanned_text.txt';
+            anchor.click();
+            URL.revokeObjectURL(anchor.href);
+        });
+    </script>
+</body>
+</html>

@@ -4,95 +4,80 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>OCR Scanner</title>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#121212">
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <style>
         body { 
-            margin: 0; 
-            padding: 10px; 
-            height: 100dvh; 
-            display: flex; 
-            flex-direction: column; 
-            background-color: #121212; 
-            color: #fff;
-            font-family: sans-serif;
-            box-sizing: border-box;
-            overflow: hidden; /* Prevents scrolling */
+            margin: 0; padding: 10px; height: 100dvh; display: flex; flex-direction: column; 
+            background-color: #121212; color: #fff; font-family: sans-serif; 
+            box-sizing: border-box; overflow: hidden;
         }
-        h2 { margin: 0 0 10px 0; text-align: center; font-size: 1.2rem; }
         
-        #videoContainer {
-            position: relative;
-            width: 100%;
-            flex: 1 1 50%;
-            min-height: 0;
-            border: 2px solid #444; 
-            border-radius: 8px;
-            overflow: hidden;
-            background: #000;
-        }
-        video { 
-            width: 100%; 
-            height: 100%;
-            object-fit: cover; 
-            display: block;
-        }
-        #targetBox {
-            position: absolute;
-            top: 25%; left: 10%;
-            width: 80%; height: 50%;
-            border: 3px solid #00ff00;
-            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6);
-            pointer-events: none;
+        #header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        h2 { margin: 0; font-size: 1.2rem; }
+        #status { display: flex; align-items: center; font-size: 0.9rem; color: #aaa; }
+        #statusDot { 
+            width: 10px; height: 10px; border-radius: 50%; 
+            background-color: #ff9900; margin-right: 6px; 
         }
 
-        #controls {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
-            height: 50px;
-            flex-shrink: 0;
+        #videoContainer {
+            position: relative; width: 100%; flex: 1 1 50%; min-height: 0;
+            border: 2px solid #444; border-radius: 8px; overflow: hidden; background: #000;
+            cursor: pointer;
         }
+        video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        #targetBox {
+            position: absolute; top: 25%; left: 10%; width: 80%; height: 50%;
+            border: 3px solid #00ff00; box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.6); pointer-events: none;
+        }
+
+        /* NEW FIX: Visual Focus Ring */
+        #focusRing {
+            position: absolute; width: 60px; height: 60px;
+            border: 2px solid rgba(255, 255, 255, 0.8); border-radius: 50%;
+            pointer-events: none; opacity: 0; transform: translate(-50%, -50%);
+            transition: opacity 0.2s, width 0.2s, height 0.2s;
+            box-sizing: border-box;
+        }
+        .focusing { opacity: 1 !important; width: 45px !important; height: 45px !important; }
+
+        #controls { display: flex; gap: 10px; margin: 10px 0; height: 50px; flex-shrink: 0; }
         button { 
-            flex: 1;
-            font-size: 16px; 
-            font-weight: bold;
-            cursor: pointer; 
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
+            flex: 1; font-size: 16px; font-weight: bold; cursor: pointer; 
+            background-color: #007bff; color: white; border: none; border-radius: 8px;
         }
         button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #555; color: #888; cursor: not-allowed; }
 
         textarea {
-            width: 100%; 
-            flex: 1 1 40%;
-            min-height: 0;
-            padding: 10px;
-            font-size: 16px;
-            resize: none; /* Disabled to maintain layout */
-            border: 2px solid #444; 
-            border-radius: 8px;
-            box-sizing: border-box;
-            background: #1e1e1e;
-            color: #fff;
+            width: 100%; flex: 1 1 40%; min-height: 0; padding: 10px; font-size: 16px;
+            resize: none; border: 2px solid #444; border-radius: 8px; box-sizing: border-box;
+            background: #1e1e1e; color: #fff;
         }
         canvas { display: none; }
     </style>
 </head>
 <body>
 
-    <h2>Text Grabber</h2>
+    <div id="header">
+        <h2>Text Grabber</h2>
+        <div id="status">
+            <div id="statusDot"></div>
+            <span id="statusText">Downloading data...</span>
+        </div>
+    </div>
     
     <div id="videoContainer">
         <video id="camera" autoplay playsinline></video>
         <div id="targetBox"></div>
+        <div id="focusRing"></div>
     </div>
     
     <div id="controls">
-        <button id="captureBtn">Capture Text</button>
+        <button id="captureBtn" disabled>Capture Text</button>
         <button id="saveBtn">Save File</button>
     </div>
     
@@ -100,9 +85,8 @@
     <canvas id="canvas"></canvas>
 
     <script>
-        // PWA Service Worker Registration
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
+            navigator.serviceWorker.register('./sw.js');
         }
 
         const video = document.getElementById('camera');
@@ -111,16 +95,69 @@
         const resultText = document.getElementById('resultText');
         const saveBtn = document.getElementById('saveBtn');
         const targetBox = document.getElementById('targetBox');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const videoContainer = document.getElementById('videoContainer');
+        const focusRing = document.getElementById('focusRing');
 
-        // Initialize Camera
+        let worker;
+        let isReady = false;
+        let videoTrack = null;
+
+        async function initOCR() {
+            try {
+                worker = await Tesseract.createWorker('eng');
+                await worker.setParameters({
+                    tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ.,!?@#$%&*()-_+="\':;/\n ',
+                });
+                statusDot.style.backgroundColor = '#00ff00';
+                statusText.innerText = 'Ready Offline';
+                captureBtn.disabled = false;
+                isReady = true;
+            } catch (err) {
+                statusDot.style.backgroundColor = '#ff0000';
+                statusText.innerText = 'Download failed';
+            }
+        }
+        initOCR();
+
         navigator.mediaDevices.getUserMedia({
             video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 }, advanced: [{ focusMode: "continuous" }] }
-        }).then(stream => { video.srcObject = stream; }).catch(() => {
+        }).then(stream => { 
+            video.srcObject = stream; 
+            videoTrack = stream.getVideoTracks()[0]; // Capture track for focus control
+        }).catch(() => {
             resultText.value = "Camera error. Check permissions.";
         });
 
-        // Capture & OCR
+        // NEW FIX: Tap to Focus Logic
+        videoContainer.addEventListener('click', async (e) => {
+            if (!videoTrack) return;
+
+            // Animate focus ring at tap location
+            const rect = videoContainer.getBoundingClientRect();
+            focusRing.style.left = `${e.clientX - rect.left}px`;
+            focusRing.style.top = `${e.clientY - rect.top}px`;
+            
+            focusRing.classList.remove('focusing');
+            void focusRing.offsetWidth; // Trigger reflow
+            focusRing.classList.add('focusing');
+            
+            setTimeout(() => focusRing.classList.remove('focusing'), 600);
+
+            // Attempt hardware focus trigger
+            const capabilities = videoTrack.getCapabilities();
+            if (capabilities.focusMode) {
+                try {
+                    await videoTrack.applyConstraints({
+                        advanced: [{ focusMode: "continuous" }]
+                    });
+                } catch (err) { /* Ignore unsupported errors silently */ }
+            }
+        });
+
         captureBtn.addEventListener('click', async () => {
+            if (!isReady) return;
             resultText.value = "Reading text... Please hold steady.";
             
             const scaleX = video.videoWidth / video.clientWidth;
@@ -138,15 +175,18 @@
             ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
             try {
-                const result = await Tesseract.recognize(canvas, 'eng');
-                let cleanedText = result.data.text.trim();
-                resultText.value = cleanedText.length < 2 ? "No text found. Try again." : cleanedText;
+                const result = await worker.recognize(canvas);
+                let cleanedText = result.data.text
+                    .replace(/ +/g, ' ')
+                    .replace(/[^\w\s.,!?'"@#$%&*()\-+=:;/]/g, '')
+                    .trim();
+                
+                resultText.value = cleanedText.length < 2 ? "No clear text found. Try again." : cleanedText;
             } catch (error) {
                 resultText.value = "Error extracting text.";
             }
         });
 
-        // Save
         saveBtn.addEventListener('click', () => {
             const text = resultText.value;
             if (!text || text.includes("Reading text...")) return;

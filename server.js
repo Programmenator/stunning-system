@@ -580,6 +580,7 @@ app.post('/api/chat', async (req, res) => {
     enableFileSearch = false,
     enableWebSearch = false,
     fileSearchPath = process.cwd(),
+    fileSearchRoot = null,
     maxFileResults = 6,
     maxWebResults = 4,
     contextWindow = 8192,
@@ -607,7 +608,7 @@ app.post('/api/chat', async (req, res) => {
     if (enableFileSearch && userMessage) {
       fileResults = await searchFiles({
         query: userMessage,
-        rootPath: fileSearchPath,
+        rootPath: fileSearchRoot || fileSearchPath,
         maxResults: clamp(maxFileResults, 1, 20)
       });
     }

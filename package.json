@@ -1,0 +1,16 @@
+{
+  "name": "stunning-system",
+  "version": "1.0.0",
+  "description": "Local LLM chat frontend with Ollama + file search + SearXNG",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check public/app.js",
+    "build:deb": "bash ./scripts/build-deb.sh"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check public/app.js",
+    "check": "node --check server.js && for f in $(rg --files src); do node --check \"$f\"; done && node --check public/app.js",
     "build:deb": "bash ./scripts/build-deb.sh"
   },
   "dependencies": {

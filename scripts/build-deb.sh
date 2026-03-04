@@ -17,6 +17,7 @@ cd "$ROOT_DIR"
 npm ci --omit=dev >/dev/null
 
 cp package.json package-lock.json server.js README.md "$PKG_DIR/opt/$APP_NAME/"
+cp -R src "$PKG_DIR/opt/$APP_NAME/src"
 cp -R public "$PKG_DIR/opt/$APP_NAME/public"
 cp -R node_modules "$PKG_DIR/opt/$APP_NAME/node_modules"
 

@@ -27,6 +27,15 @@ A local ChatGPT-style interface for Ollama with optional:
 - Full-context toggle for uploaded documents so the model receives full document text (not truncated snippets) when enabled.
 - Exposes helper APIs: `/api/chat`, `/api/files/search`, `/api/web/search`, `/api/gpu/status`, `/api/gpu/clear`, `/api/model/switch`, `/api/models`.
 
+## Project structure
+
+- `server.js`: minimal startup entrypoint.
+- `src/app.js`: Express app wiring and middleware setup.
+- `src/routes/api-routes.js`: API endpoint declarations.
+- `src/services/*`: modular business logic for chat, GPU, Ollama, search, and reranking.
+- `src/config/constants.js`: shared defaults and read-only file-search guard metadata.
+- `src/utils/math.js`: utility helpers.
+
 ## Quick start (dev)
 
 ```bash

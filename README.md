@@ -31,8 +31,10 @@ A local ChatGPT-style interface for Ollama with optional:
 
 - `server.js`: minimal startup entrypoint.
 - `src/app.js`: Express app wiring and middleware setup.
-- `src/routes/api-routes.js`: API endpoint declarations.
-- `src/services/*`: modular business logic for chat, GPU, Ollama, search, and reranking.
+- `src/routes/api-routes.js`: API composition root.
+- `src/routes/*-routes.js`: one router module per responsibility domain (health, GPU, models, search, chat).
+- `src/services/chat/*`: chat orchestration split into handler/context/metrics modules.
+- `src/services/*`: modular business logic for GPU, Ollama, search, and reranking.
 - `src/config/constants.js`: shared defaults and read-only file-search guard metadata.
 - `src/utils/math.js`: utility helpers.
 

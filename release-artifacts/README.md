@@ -1,7 +1,13 @@
 # Release Artifacts
 
-Latest Debian package (refactored source version):
+Downloadable Debian package (stable filename):
 
-- stunning-system_1.0.0_amd64_refactored-source_20260305_000308.deb
-- Built at: 2026-03-05 00:03:08 UTC
-- Source: main branch latest code
+- `stunning-system_1.0.0_amd64.deb`
+
+GitHub download links:
+
+- Browser: `https://github.com/Programmenator/stunning-system/blob/main/release-artifacts/stunning-system_1.0.0_amd64.deb`
+- Direct download: `https://github.com/Programmenator/stunning-system/raw/main/release-artifacts/stunning-system_1.0.0_amd64.deb`
+
+Built at: 2026-03-05 00:29:00 UTC
+Source: main branch latest code
